@@ -1,0 +1,140 @@
+// https://baba-s.hatenablog.com/entry/2018/10/11/170000 参照,備忘録兼ねて
+// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
+Shader "Custom/Blur"
+//Shaderの名前を決めるブロック、ファイル名と一致させる必要はない
+{
+    Properties
+    //MaterialのInspectorで設定したいプロパティの記述を行うブロック
+    //プロパティ名("Inspectorに表示する名前",型) default値{オプション}で記述される
+    {
+        _Factor ("Factor", Range(0, 5)) = 1.0
+    }
+    SubShader
+    //Shaderの肝,shaderによって実現したい内容を記述する.複数設定することが可能
+    {
+        Tags { "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" }
+        //unityにshaderの設定を伝える
+        //TransparentはMaterial表面を半透明にする
+        //passの外側にあるため、ほかのすべてのSubShaderに引き継がれる
+
+        GrabPass { }
+        //このパスが実行される時点のレンダリング結果を取得できる特殊なパス
+        //一般的に重い処理となる
+
+        Pass
+        //shader本体の記述(固定機能シェーダorサーフェスシェーダor頂点フラグメントシェーダ)
+        //passは複数記述可能. 
+        {
+            CGPROGRAM //Cg言語を使う合図
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma fragmentoption ARB_precision_hint_fastest
+            //pragmaがコンパイラに対して情報を渡す
+
+            #include "UnityCG.cginc"
+            //Cg言語用のインクルードファイル拡張子
+
+            struct appdata //頂点シェーダへ入力する頂点データの定義
+            {
+                float4 vertex : POSITION; //頂点座標
+                float2 uv : TEXCOORD0; //n番目のテクスチャUV(色),UnlitShaderでは頂点座標に対してテクスチャUVを1つ受け取る
+            };
+
+            struct v2f //vertex to fragment,情報の受け渡し
+            {
+                float4 pos : SV_POSITION; //座標変換された後の頂点座標
+                float4 uv : TEXCOORD0; //テクスチャUV
+            };
+
+            v2f vert (appdata v) //v2f 関数名 (頂点データ型　頂点データ変数名)
+            {
+                v2f o;
+                //以降,頂点シェーダの処理
+                o.pos = UnityObjectToClipPos(v.vertex); //3D空間からスクリーン上の位置へ座標変換を行う関数
+                o.uv = ComputeGrabScreenPos(o.pos);
+                return o;
+            }
+
+            sampler2D _GrabTexture; //GrabPassの結果をこの変数で取得
+            float4 _GrabTexture_TexelSize;
+            float _Factor;
+
+            half4 frag (v2f i) : SV_Target
+            {
+
+                half4 pixelCol = half4(0, 0, 0, 0);
+
+                #define ADDPIXEL(weight,kernelX) tex2Dproj(_GrabTexture, UNITY_PROJ_COORD(float4(i.uv.x + _GrabTexture_TexelSize.x * kernelX * _Factor, i.uv.y, i.uv.z, i.uv.w))) * weight
+
+                pixelCol += ADDPIXEL(0.05, 4.0);
+                pixelCol += ADDPIXEL(0.09, 3.0);
+                pixelCol += ADDPIXEL(0.12, 2.0);
+                pixelCol += ADDPIXEL(0.15, 1.0);
+                pixelCol += ADDPIXEL(0.18, 0.0);
+                pixelCol += ADDPIXEL(0.15, -1.0);
+                pixelCol += ADDPIXEL(0.12, -2.0);
+                pixelCol += ADDPIXEL(0.09, -3.0);
+                pixelCol += ADDPIXEL(0.05, -4.0);
+                return pixelCol;
+            }
+            ENDCG
+        }
+
+        GrabPass { }
+
+        Pass
+        {
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma fragmentoption ARB_precision_hint_fastest
+
+            #include "UnityCG.cginc"
+
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float4 uv : TEXCOORD0;
+            };
+
+            v2f vert (appdata v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.uv = ComputeGrabScreenPos(o.pos);
+                return o;
+            }
+
+            sampler2D _GrabTexture;
+            float4 _GrabTexture_TexelSize;
+            float _Factor;
+
+            fixed4 frag (v2f i) : SV_Target
+            {
+
+                fixed4 pixelCol = fixed4(0, 0, 0, 0);
+
+                #define ADDPIXEL(weight,kernelY) tex2Dproj(_GrabTexture, UNITY_PROJ_COORD(float4(i.uv.x, i.uv.y + _GrabTexture_TexelSize.y * kernelY * _Factor, i.uv.z, i.uv.w))) * weight
+
+                pixelCol += ADDPIXEL(0.05, 4.0);
+                pixelCol += ADDPIXEL(0.09, 3.0);
+                pixelCol += ADDPIXEL(0.12, 2.0);
+                pixelCol += ADDPIXEL(0.15, 1.0);
+                pixelCol += ADDPIXEL(0.18, 0.0);
+                pixelCol += ADDPIXEL(0.15, -1.0);
+                pixelCol += ADDPIXEL(0.12, -2.0);
+                pixelCol += ADDPIXEL(0.09, -3.0);
+                pixelCol += ADDPIXEL(0.05, -4.0);
+                return pixelCol;
+            }
+            ENDCG
+        }
+    }
+}
