@@ -1,7 +1,7 @@
 // https://baba-s.hatenablog.com/entry/2018/10/11/170000 参照,備忘録兼ねて
 // Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
 
-Shader "Custom/Blur"
+Shader "Newname/new"
 //Shaderの名前を決めるブロック、ファイル名と一致させる必要はない
 {
     Properties
