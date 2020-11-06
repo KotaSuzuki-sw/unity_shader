@@ -37,14 +37,14 @@ Shader "Newname/new"
 
             struct appdata //頂点シェーダへ入力する頂点データの定義
             {
-                float4 vertex : POSITION; //頂点座標
+                float4 vertex : POSITION; //頂点座標の取得
                 float2 uv : TEXCOORD0; //n番目のテクスチャUV(色),UnlitShaderでは頂点座標に対してテクスチャUVを1つ受け取る
             };
 
             struct v2f //vertex to fragment,情報の受け渡し
             {
-                float4 pos : SV_POSITION; //座標変換された後の頂点座標
-                float4 uv : TEXCOORD0; //テクスチャUV
+                float4 pos : SV_POSITION; //座標変換された後の頂点座標の取得
+                float4 uv : TEXCOORD0; //テクスチャUV座標の取得
             };
 
             v2f vert (appdata v) //v2f 関数名 (頂点データ型　頂点データ変数名)
@@ -52,11 +52,12 @@ Shader "Newname/new"
                 v2f o;
                 //以降,頂点シェーダの処理
                 o.pos = UnityObjectToClipPos(v.vertex); //3D空間からスクリーン上の位置へ座標変換を行う関数
-                o.uv = ComputeGrabScreenPos(o.pos);
+                o.uv = ComputeGrabScreenPos(o.pos); //スクリーン上の座標をuv座標と一致させる(Mesh座標とTexture座標の一致のような)
                 return o;
             }
-
-            sampler2D _GrabTexture; //GrabPassの結果をこの変数で取得
+            
+            //GrabPassの結果を取得
+            sampler2D _GrabTexture; 
             float4 _GrabTexture_TexelSize;
             float _Factor;
 
@@ -66,7 +67,13 @@ Shader "Newname/new"
                 half4 pixelCol = half4(0, 0, 0, 0);
 
                 #define ADDPIXEL(weight,kernelX) tex2Dproj(_GrabTexture, UNITY_PROJ_COORD(float4(i.uv.x + _GrabTexture_TexelSize.x * kernelX * _Factor, i.uv.y, i.uv.z, i.uv.w))) * weight
-
+                /*
+                ・特定の文字列を定義、コンパイル時に1つ目の文字列を2つ目の文字列に置き換える命令
+                ・tex2Dprojはwで除算してからtex2Dを行う関数、(奥行き(z)を正規化して2D平面のどの位置に該当ピクセルが来るのか計算)
+                ・UNITY_PROF_COORDは4成分ベクトルを渡すと、投影されたテクスチャ読み込みに適切なテクスチャ座標を戻す
+                ・_Factorは画像のぼけ具合
+                */
+                
                 pixelCol += ADDPIXEL(0.05, 4.0);
                 pixelCol += ADDPIXEL(0.09, 3.0);
                 pixelCol += ADDPIXEL(0.12, 2.0);
