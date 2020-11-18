@@ -37,11 +37,11 @@ Shader "Newname/new"
 
             struct appdata //頂点シェーダへ入力する頂点データの定義
             {
-                float4 vertex : POSITION; //頂点座標の取得
-                float2 uv : TEXCOORD0; //n番目のテクスチャUV(色),UnlitShaderでは頂点座標に対してテクスチャUVを1つ受け取る
+                float4 vertex : POSITION; //頂点の空間座標の取得
+                float2 uv : TEXCOORD0; //頂点のUV座標を保存。n番目のテクスチャUV(色),UnlitShaderでは頂点座標に対してテクスチャUVを1つ受け取る
             };
 
-            struct v2f //vertex to fragment,情報の受け渡し
+            struct v2f //vertex to fragment,情報の受け渡し、モデルをカメラで写した時のスクリーン上での座興に変換
             {
                 float4 pos : SV_POSITION; //座標変換された後の頂点座標の取得
                 float4 uv : TEXCOORD0; //テクスチャUV座標の取得
